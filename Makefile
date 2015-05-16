@@ -1,21 +1,21 @@
-.PHONY: build build-pi deps-save deps-restore
+.PHONY: build pi
 
 default: build
 
 build:
 	@echo "=> Building all binaries..."
-	godep go build -o bin/bell	cmd/bell/main.go
-	godep go build -o bin/meter	cmd/meter/main.go
+	godep go build -o bin/echo cmd/echo/main.go
+	godep go build -o bin/electra cmd/electra/main.go
+	godep go build -o bin/poseidon cmd/poseidon/main.go
+	godep go build -o bin/zeus cmd/zeus/main.go
 	@echo "=> Done."
 
-build-pi:
+pi:
 	@echo "=> Building all binaries for Raspberry PI..."
-	GOOS=linux GOARCH=arm GOARM=6 godep go build -o bin/bell-linux-arm6 cmd/bell/main.go
-	GOOS=linux GOARCH=arm GOARM=6 godep go build -o bin/meter-linux-arm6 cmd/meter/main.go
+	GOOS=linux GOARCH=arm GOARM=6 godep go build -o bin/echo-linux-arm6 cmd/echo/main.go
+	GOOS=linux GOARCH=arm GOARM=6 godep go build -o bin/electra-linux-arm6 cmd/electra/main.go
+	GOOS=linux GOARCH=arm GOARM=6 godep go build -o bin/poseidon-linux-arm6 cmd/poseidon/main.go
 	@echo "=> Done."
 
-deps-save:
-	godep save ./...
-
-deps-restore:
-	godep restore
+ship: pi
+	scp bin/electra-linux-arm6 pi@zeus:~/electra

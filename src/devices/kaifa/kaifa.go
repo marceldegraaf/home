@@ -17,14 +17,14 @@ const (
 	crcPolynomial = 0xA001 // IBM CRC16
 )
 
-var (
+type Kaifa struct {
+	C      chan *Point
 	config *serial.Config
 	usb    io.ReadWriteCloser
 	reader *bufio.Reader
-	C      chan *Sample
-)
+}
 
-type Sample struct {
+type Point struct {
 	CurrentlyIn  float64   `json:"currently_in"`   // Current kW into meter
 	CurrentlyOut float64   `json:"currently_out"`  // Current kW out of meter
 	TotalInLow   float64   `json:"total_in_low"`   // Total kWh in (low tariff)
@@ -35,43 +35,32 @@ type Sample struct {
 	Timestamp    time.Time `json:"timestamp"`
 }
 
-func Initialize() chan *Sample {
-	C = make(chan *Sample, 6)
+func Initialize() *Kaifa {
 	var err error
 
-	config = &serial.Config{Name: device, Baud: rate}
-	usb, err = serial.OpenPort(config)
+	k := Kaifa{C: make(chan *Point, 10)}
+
+	k.config = &serial.Config{Name: device, Baud: rate}
+	k.usb, err = serial.OpenPort(k.config)
 	if err != nil {
 		log.Fatalf("kaifa/Initialize: %s", err)
 	}
 
-	reader = bufio.NewReader(usb)
+	k.reader = bufio.NewReader(k.usb)
 
-	return C
+	return &k
 }
 
-func Poll() {
+func (k *Kaifa) Poll() {
 	var m string
-	var s *Sample
 	var err error
 
 	for {
-		if m, err = reader.ReadString(delimiter); err != nil {
+		if m, err = k.reader.ReadString(delimiter); err != nil {
 			log.Errorf("kaifa/Poll: reading from serial interface: %s", err)
 			continue
 		}
 
-		if s, err = parse(m); err != nil {
-			log.Errorf("kaifa/Poll: parsing message: %s", err)
-			continue
-		}
-
-		C <- s
+		k.C <- parse(m)
 	}
-}
-
-func parse(m string) (*Sample, error) {
-	s := &Sample{Tariff: 1}
-
-	return s, nil
 }
